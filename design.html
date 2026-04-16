@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>wealth.wise</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:       #0c0c0c;
+    --bg2:      #131313;
+    --bg3:      #1a1a1a;
+    --bg4:      #222222;
+    --gold:     #c9a84c;
+    --gold2:    #e8c97a;
+    --gold3:    #f5e4b0;
+    --gold-dim: #7a6530;
+    --text:     #f0ece4;
+    --muted:    #888480;
+    --muted2:   #555250;
+    --border:   #2a2720;
+    --border2:  #3a3530;
+    --green:    #4caf84;
+    --red:      #e05a5a;
+    --serif:    'Cormorant Garamond', Georgia, serif;
+    --sans:     'DM Sans', sans-serif;
+    --radius:   12px;
+    --radius-sm:8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; overflow: hidden; }
+  .app { display: flex; height: 100vh; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 220px; flex-shrink: 0;
+    background: var(--bg2);
+    border-right: 0.5px solid var(--border);
+    display: flex; flex-direction: column;
+    padding: 0;
+  }
+  .logo-wrap {
+    padding: 28px 24px 24px;
+    border-bottom: 0.5px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .logo-badge {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: #1c1810;
+    border: 1px solid var(--gold-dim);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--serif); font-size: 13px; color: var(--gold); font-style: italic;
+  }
+  .logo-text { font-family: var(--serif); font-size: 18px; color: var(--text); letter-spacing: 0.01em; }
+  .logo-text span { color: var(--gold); }
+  .nav { flex: 1; padding: 20px 12px; display: flex; flex-direction: column; gap: 2px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px; border-radius: var(--radius-sm);
+    color: var(--muted); cursor: pointer;
+    transition: all 0.18s; font-size: 13px; font-weight: 400;
+    border: 0.5px solid transparent;
+  }
+  .nav-item:hover { color: var(--text); background: var(--bg3); }
+  .nav-item.active {
+    color: var(--gold); background: #1c1810;
+    border-color: var(--gold-dim);
+  }
+  .nav-icon { width: 16px; height: 16px; opacity: 0.8; flex-shrink: 0; }
+  .nav-item.active .nav-icon { opacity: 1; }
+  .sidebar-footer {
+    padding: 16px 12px;
+    border-top: 0.5px solid var(--border);
+  }
+  .theme-btn {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px; border-radius: var(--radius-sm);
+    color: var(--muted); cursor: pointer; font-size: 13px;
+    transition: color 0.18s;
+  }
+  .theme-btn:hover { color: var(--text); }
+
+  /* ── MAIN ── */
+  .main { flex: 1; overflow-y: auto; background: var(--bg); }
+  .page { display: none; padding: 36px 40px; min-height: 100vh; }
+  .page.active { display: block; }
+
+  .page-header { margin-bottom: 32px; }
+  .page-title { font-family: var(--serif); font-size: 36px; font-weight: 300; color: var(--text); letter-spacing: -0.01em; }
+  .page-subtitle { font-size: 13px; color: var(--gold); margin-top: 4px; font-style: italic; font-family: var(--serif); }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--bg2); border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 24px;
+  }
+  .card-gold {
+    background: #1a1508; border-color: var(--gold-dim);
+  }
+
+  /* ── STAT CARDS ── */
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 22px 24px; }
+  .stat-card.gold-card { background: #1a1508; border-color: var(--gold-dim); }
+  .stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .stat-label svg { width: 14px; height: 14px; opacity: 0.6; }
+  .stat-value { font-family: var(--serif); font-size: 32px; font-weight: 300; color: var(--text); }
+  .stat-value.gold { color: var(--gold); }
+  .stat-change { font-size: 12px; margin-top: 6px; }
+  .stat-change.up { color: var(--green); }
+  .stat-change.down { color: var(--red); }
+
+  /* ── CHARTS ROW ── */
+  .charts-row { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .chart-title { font-family: var(--serif); font-size: 18px; font-weight: 400; }
+  .time-tabs { display: flex; gap: 4px; }
+  .time-tab {
+    padding: 4px 10px; border-radius: 20px; font-size: 11px;
+    color: var(--muted); cursor: pointer; border: 0.5px solid transparent;
+    transition: all 0.15s;
+  }
+  .time-tab:hover { color: var(--text); }
+  .time-tab.active { color: var(--gold); background: #1c1810; border-color: var(--gold-dim); }
+  .chart-wrap { position: relative; height: 180px; }
+
+  /* ── TABLE ── */
+  .table-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .view-all { font-size: 12px; color: var(--gold); cursor: pointer; text-decoration: none; opacity: 0.8; }
+  .view-all:hover { opacity: 1; }
+  table { width: 100%; border-collapse: collapse; }
+  th { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; padding: 0 0 12px; text-align: left; border-bottom: 0.5px solid var(--border); font-weight: 400; }
+  th:last-child, td:last-child { text-align: right; }
+  td { padding: 13px 0; font-size: 13px; color: var(--text); border-bottom: 0.5px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  .td-muted { color: var(--muted); font-size: 12px; }
+  .badge {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 400;
+  }
+  .badge-green { background: rgba(76,175,132,0.12); color: var(--green); border: 0.5px solid rgba(76,175,132,0.25); }
+  .badge-red   { background: rgba(224,90,90,0.12);  color: var(--red);   border: 0.5px solid rgba(224,90,90,0.25); }
+  .badge-gold  { background: rgba(201,168,76,0.12); color: var(--gold);  border: 0.5px solid rgba(201,168,76,0.3); }
+  .empty-state { text-align: center; padding: 40px; color: var(--muted); font-size: 13px; }
+
+  /* ── ASSET/LIABILITY CARDS ── */
+  .asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .asset-card {
+    background: var(--bg2); border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 22px;
+    cursor: pointer; transition: border-color 0.18s;
+  }
+  .asset-card:hover { border-color: var(--gold-dim); }
+  .asset-card-icon { width: 36px; height: 36px; border-radius: 8px; background: var(--bg3); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+  .asset-card-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.07em; }
+  .asset-card-value { font-family: var(--serif); font-size: 26px; font-weight: 300; color: var(--text); }
+  .asset-card-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .add-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px; border-radius: var(--radius-sm);
+    background: var(--gold); color: #0c0a06;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    border: none; transition: background 0.15s;
+  }
+  .add-btn:hover { background: var(--gold2); }
+
+  /* ── GOALS ── */
+  .goal-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 22px; margin-bottom: 12px; }
+  .goal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .goal-name { font-family: var(--serif); font-size: 18px; font-weight: 400; }
+  .goal-target { font-size: 12px; color: var(--muted); }
+  .progress-bar { height: 4px; background: var(--bg4); border-radius: 2px; overflow: hidden; margin-bottom: 8px; }
+  .progress-fill { height: 100%; background: var(--gold); border-radius: 2px; transition: width 0.6s ease; }
+  .goal-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+  .goal-meta span:first-child { color: var(--gold); }
+
+  /* ── LOGIN PAGE ── */
+  #login-page {
+    display: flex; min-height: 100vh; overflow: hidden;
+    background: var(--bg);
+  }
+  .login-left {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 60px 80px;
+    position: relative;
+  }
+  .login-pattern {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle, #2a2720 1px, transparent 1px);
+    background-size: 32px 32px;
+    opacity: 0.35;
+    pointer-events: none;
+  }
+  .login-content { position: relative; z-index: 1; width: 100%; max-width: 360px; }
+  .login-logo { display: flex; align-items: center; gap: 14px; margin-bottom: 48px; }
+  .login-badge {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: #1c1810; border: 1px solid var(--gold-dim);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--serif); font-size: 15px; color: var(--gold); font-style: italic;
+  }
+  .login-wordmark { font-family: var(--serif); font-size: 28px; font-weight: 300; letter-spacing: 0.01em; }
+  .login-wordmark span { color: var(--gold); }
+  .login-tagline { font-family: var(--serif); font-size: 13px; font-style: italic; color: var(--muted); margin-bottom: 40px; }
+  .login-card {
+    background: #141410; border: 0.5px solid var(--border2);
+    border-radius: 16px; padding: 32px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .login-divider { display: flex; align-items: center; gap: 12px; color: var(--muted2); font-size: 12px; margin: 4px 0; }
+  .login-divider::before, .login-divider::after { content: ''; flex: 1; height: 0.5px; background: var(--border); }
+  .login-input {
+    width: 100%; padding: 12px 16px; border-radius: var(--radius-sm);
+    background: var(--bg3); border: 0.5px solid var(--border2);
+    color: var(--text); font-family: var(--sans); font-size: 13px;
+    outline: none; transition: border-color 0.15s;
+  }
+  .login-input:focus { border-color: var(--gold-dim); }
+  .login-input::placeholder { color: var(--muted2); }
+  .btn-primary {
+    width: 100%; padding: 12px; border-radius: var(--radius-sm);
+    background: var(--gold); color: #0c0a06;
+    font-family: var(--sans); font-size: 13px; font-weight: 500;
+    border: none; cursor: pointer; transition: background 0.15s;
+  }
+  .btn-primary:hover { background: var(--gold2); }
+  .btn-outline {
+    width: 100%; padding: 12px; border-radius: var(--radius-sm);
+    background: transparent; color: var(--muted);
+    font-family: var(--sans); font-size: 13px;
+    border: 0.5px solid var(--border2); cursor: pointer;
+    transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .btn-outline:hover { color: var(--text); border-color: var(--border2); background: var(--bg3); }
+  .btn-mock {
+    width: 100%; padding: 12px; border-radius: var(--radius-sm);
+    background: transparent; color: var(--gold);
+    font-family: var(--sans); font-size: 13px;
+    border: 0.5px solid var(--gold-dim); cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-mock:hover { background: #1c1810; }
+  .login-right {
+    width: 42%; background: #0e0d0a;
+    border-left: 0.5px solid var(--border);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 60px 40px; gap: 24px;
+    position: relative; overflow: hidden;
+  }
+  .login-right-decor {
+    position: absolute; width: 300px; height: 300px; border-radius: 50%;
+    border: 0.5px solid var(--gold-dim); opacity: 0.15;
+  }
+  .login-stat {
+    width: 100%; max-width: 280px; background: #141410;
+    border: 0.5px solid var(--border2); border-radius: var(--radius);
+    padding: 20px 22px; position: relative; z-index: 1;
+  }
+  .login-stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .login-stat-value { font-family: var(--serif); font-size: 28px; font-weight: 300; color: var(--gold2); }
+  .login-stat-sub { font-size: 12px; color: var(--green); margin-top: 4px; }
+
+  /* ── TRANSACTIONS ── */
+  .tx-filters { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .tx-search {
+    flex: 1; padding: 9px 14px; border-radius: var(--radius-sm);
+    background: var(--bg2); border: 0.5px solid var(--border);
+    color: var(--text); font-family: var(--sans); font-size: 13px; outline: none;
+    transition: border-color 0.15s;
+  }
+  .tx-search:focus { border-color: var(--gold-dim); }
+  .tx-search::placeholder { color: var(--muted); }
+  .filter-btn {
+    padding: 8px 16px; border-radius: 20px; font-size: 12px;
+    border: 0.5px solid var(--border); background: transparent;
+    color: var(--muted); cursor: pointer; font-family: var(--sans);
+    transition: all 0.15s;
+  }
+  .filter-btn.active { color: var(--gold); background: #1c1810; border-color: var(--gold-dim); }
+  .filter-btn:hover:not(.active) { color: var(--text); border-color: var(--border2); }
+
+  /* scrollbar */
+  .main::-webkit-scrollbar { width: 4px; }
+  .main::-webkit-scrollbar-track { background: transparent; }
+  .main::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* gold line accent on stat cards */
+  .stat-card::before {
+    content: ''; display: block; width: 28px; height: 1px;
+    background: var(--gold); margin-bottom: 14px; opacity: 0.5;
+  }
+  .stat-card.gold-card::before { opacity: 1; }
+</style>
+
+<!-- ═══════════════ LOGIN PAGE ═══════════════ -->
+<div id="login-page" class="app" style="display:flex;">
+  <div class="login-left">
+    <div class="login-pattern"></div>
+    <div class="login-content">
+      <div class="login-logo">
+        <div class="login-badge">w.w</div>
+        <div>
+          <div class="login-wordmark">wealth<span>.</span>wise</div>
+        </div>
+      </div>
+      <p class="login-tagline">your wealth is our priority.</p>
+      <div class="login-card">
+        <button class="btn-outline" onclick="void(0)">
+          <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Continue with Google
+        </button>
+        <div class="login-divider">or</div>
+        <input class="login-input" type="email" placeholder="Enter your email"/>
+        <button class="btn-primary" onclick="void(0)">Continue with email</button>
+        <button class="btn-mock" onclick="enterApp()">Start as a mock user</button>
+      </div>
+    </div>
+  </div>
+  <div class="login-right">
+    <div class="login-right-decor" style="top:-100px;right:-100px;width:400px;height:400px;"></div>
+    <div class="login-right-decor" style="bottom:-80px;left:-80px;width:280px;height:280px;"></div>
+    <div class="login-stat" style="transform:rotate(-1.5deg)">
+      <div class="login-stat-label">Portfolio value</div>
+      <div class="login-stat-value">₹ 18,42,500</div>
+      <div class="login-stat-sub">▲ 12.4% this year</div>
+    </div>
+    <div class="login-stat" style="transform:rotate(1deg)">
+      <div class="login-stat-label">Net worth</div>
+      <div class="login-stat-value">₹ 24,60,000</div>
+      <div class="login-stat-sub">▲ 8.1% this month</div>
+    </div>
+    <div class="login-stat" style="transform:rotate(-0.5deg)">
+      <div class="login-stat-label">Top asset</div>
+      <div class="login-stat-value" style="font-size:20px;margin-top:4px;">TCS — ₹6,800</div>
+      <div class="login-stat-sub">▲ 3.2% today</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MAIN APP ═══════════════ -->
+<div id="main-app" class="app" style="display:none;">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo-wrap">
+      <div class="logo-badge">w.w</div>
+      <div class="logo-text">wealth<span>.</span>wise</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active" onclick="showPage('dashboard',this)">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="7" height="7" rx="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5"/><rect x="2" y="11" width="7" height="7" rx="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" onclick="showPage('assets',this)">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V5z"/><path d="M7 10h6M10 7v6"/></svg>
+        Assets
+      </div>
+      <div class="nav-item" onclick="showPage('liabilities',this)">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="16" height="11" rx="2"/><path d="M6 5V4a2 2 0 014 0v1"/></svg>
+        Liabilities
+      </div>
+      <div class="nav-item" onclick="showPage('transactions',this)">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8h12M4 12h12"/><path d="M4 6l3-3 3 3M16 14l-3 3-3-3"/></svg>
+        Transactions
+      </div>
+      <div class="nav-item" onclick="showPage('goals',this)">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="7"/><circle cx="10" cy="10" r="3"/><line x1="10" y1="2" x2="10" y2="4"/></svg>
+        Goals
+      </div>
+      <div class="nav-item" onclick="showPage('stocks',this)" style="margin-top:8px; border-top:0.5px solid var(--border); padding-top:12px; margin-top:12px; border-radius:0; border-left:none; border-right:none; border-bottom:none;">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="2,14 7,8 11,11 18,4"/><polyline points="14,4 18,4 18,8"/></svg>
+        Stocks
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="theme-btn">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="10" y1="16" x2="10" y2="18"/><line x1="2" y1="10" x2="4" y2="10"/><line x1="16" y1="10" x2="18" y2="10"/></svg>
+        Light mode
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGES -->
+  <div class="main">
+
+    <!-- ── DASHBOARD ── -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-header">
+        <div class="page-title">Financial Overview</div>
+        <div class="page-subtitle">Welcome back, Arjun</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="14" height="9" rx="1.5"/><path d="M4 4V3a1 1 0 011-1h6a1 1 0 011 1v1"/></svg>
+            Total assets
+          </div>
+          <div class="stat-value">₹ 20,000</div>
+          <div class="stat-change up">▲ 8.2% this month</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="14" height="9" rx="1.5"/><path d="M5 8h6"/></svg>
+            Total liabilities
+          </div>
+          <div class="stat-value">₹ 2,400</div>
+          <div class="stat-change down">▼ EMI due in 5 days</div>
+        </div>
+        <div class="stat-card gold-card">
+          <div class="stat-label" style="color:var(--gold-dim)">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+            Net worth
+          </div>
+          <div class="stat-value gold">₹ 17,600</div>
+          <div class="stat-change up">▲ 5.4% overall</div>
+        </div>
+      </div>
+      <div class="charts-row">
+        <div class="card">
+          <div class="chart-header">
+            <div class="chart-title">Net worth trend</div>
+            <div class="time-tabs">
+              <div class="time-tab" onclick="switchTab(this,'1D')">1D</div>
+              <div class="time-tab" onclick="switchTab(this,'5D')">5D</div>
+              <div class="time-tab" onclick="switchTab(this,'1M')">1M</div>
+              <div class="time-tab" onclick="switchTab(this,'1Y')">1Y</div>
+              <div class="time-tab active" onclick="switchTab(this,'Max')">Max</div>
+            </div>
+          </div>
+          <div class="chart-wrap"><canvas id="netWorthChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="chart-header">
+            <div class="chart-title">Asset allocation</div>
+          </div>
+          <div class="chart-wrap" style="height:160px;"><canvas id="allocChart"></canvas></div>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-top:14px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="display:flex;align-items:center;gap:6px;color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:#c9a84c;display:inline-block;"></span>Cash</span><span>55%</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="display:flex;align-items:center;gap:6px;color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:#7a6530;display:inline-block;"></span>Stocks</span><span>33%</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="display:flex;align-items:center;gap:6px;color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:#3a3530;display:inline-block;"></span>Other</span><span>12%</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-header">
+          <div class="chart-title">Transaction history</div>
+          <span class="view-all" onclick="showPage('transactions',null)">View all →</span>
+        </div>
+        <table>
+          <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Amount</th></tr></thead>
+          <tbody>
+            <tr><td class="td-muted">Apr 12</td><td>Bought TCS shares</td><td><span class="badge badge-gold">Stock</span></td><td style="color:var(--red)">−₹3,800</td></tr>
+            <tr><td class="td-muted">Apr 10</td><td>Salary credit</td><td><span class="badge badge-green">Income</span></td><td style="color:var(--green)">+₹55,000</td></tr>
+            <tr><td class="td-muted">Apr 08</td><td>EMI payment</td><td><span class="badge badge-red">Expense</span></td><td style="color:var(--red)">−₹8,500</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── ASSETS ── -->
+    <div id="page-assets" class="page">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div>
+          <div class="page-title">Assets</div>
+          <div class="page-subtitle">Manage what you own</div>
+        </div>
+        <button class="add-btn" onclick="void(0)">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg>
+          Add Asset
+        </button>
+      </div>
+      <div class="asset-grid">
+        <div class="asset-card">
+          <div class="asset-card-icon">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="var(--gold)" stroke-width="1.5"><rect x="2" y="5" width="16" height="11" rx="2"/><path d="M6 5V4a2 2 0 014 0v1"/></svg>
+          </div>
+          <div class="asset-card-label">Cash</div>
+          <div class="asset-card-value">₹ 11,000</div>
+          <div class="asset-card-sub">Savings account</div>
+        </div>
+        <div class="asset-card">
+          <div class="asset-card-icon">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="var(--gold)" stroke-width="1.5"><polyline points="2,14 7,8 11,11 18,4"/></svg>
+          </div>
+          <div class="asset-card-label">Stocks — Nvidia</div>
+          <div class="asset-card-value">₹ 2,400</div>
+          <div class="asset-card-sub" style="color:var(--green)">▲ 4.2% today</div>
+        </div>
+        <div class="asset-card">
+          <div class="asset-card-icon">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="var(--gold)" stroke-width="1.5"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M3 8h14"/></svg>
+          </div>
+          <div class="asset-card-label">Fixed Deposit</div>
+          <div class="asset-card-value">₹ 5,000</div>
+          <div class="asset-card-sub">Matures Jun 2025</div>
+        </div>
+        <div class="asset-card" style="border-style:dashed;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:140px;" onclick="void(0)">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <div style="font-size:12px;color:var(--muted);margin-top:10px;">Add new asset</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="chart-header"><div class="chart-title">Asset performance</div></div>
+        <div class="chart-wrap"><canvas id="assetPerfChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ── LIABILITIES ── -->
+    <div id="page-liabilities" class="page">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div>
+          <div class="page-title">Liabilities</div>
+          <div class="page-subtitle">Manage what you owe</div>
+        </div>
+        <button class="add-btn">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg>
+          Add Liability
+        </button>
+      </div>
+      <div class="asset-grid">
+        <div class="asset-card" style="border-color:rgba(224,90,90,0.25)">
+          <div class="asset-card-icon" style="background:rgba(224,90,90,0.08)">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="var(--red)" stroke-width="1.5"><path d="M10 2l8 14H2L10 2z"/><path d="M10 8v4M10 14v.5"/></svg>
+          </div>
+          <div class="asset-card-label">Home Loan</div>
+          <div class="asset-card-value">₹ 2,00,000</div>
+          <div class="asset-card-sub" style="color:var(--red)">Due in 5 days</div>
+        </div>
+        <div class="asset-card">
+          <div class="asset-card-icon">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="var(--muted)" stroke-width="1.5"><rect x="2" y="5" width="16" height="11" rx="2"/><path d="M6 11h8"/></svg>
+          </div>
+          <div class="asset-card-label">EMI</div>
+          <div class="asset-card-value">₹ 8,500</div>
+          <div class="asset-card-sub">Monthly — 18 left</div>
+        </div>
+        <div class="asset-card" style="border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:140px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <div style="font-size:12px;color:var(--muted);margin-top:10px;">Add liability</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="chart-header"><div class="chart-title">Liability breakdown</div></div>
+        <div class="chart-wrap" style="height:160px;"><canvas id="liabChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ── TRANSACTIONS ── -->
+    <div id="page-transactions" class="page">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div>
+          <div class="page-title">Transactions</div>
+          <div class="page-subtitle">Track your income and spending</div>
+        </div>
+        <button class="add-btn">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg>
+          Add Transaction
+        </button>
+      </div>
+      <div class="tx-filters">
+        <input class="tx-search" placeholder="Search transactions..." oninput="filterTx(this.value)"/>
+        <button class="filter-btn active" onclick="filterType('all',this)">All</button>
+        <button class="filter-btn" onclick="filterType('income',this)">Income</button>
+        <button class="filter-btn" onclick="filterType('expense',this)">Expense</button>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <table style="width:100%;">
+          <thead><tr style="border-bottom:0.5px solid var(--border);"><th style="padding:16px 24px;">Date</th><th style="padding:16px 8px;">Description</th><th style="padding:16px 8px;">Category</th><th style="padding:16px 24px;text-align:right;">Amount</th><th style="padding:16px 24px;text-align:right;">Actions</th></tr></thead>
+          <tbody id="tx-tbody">
+            <tr data-type="stock"><td style="padding:14px 24px;" class="td-muted">Apr 12, 2025</td><td style="padding:14px 8px;">Bought TCS shares</td><td style="padding:14px 8px;"><span class="badge badge-gold">Stock</span></td><td style="padding:14px 24px;text-align:right;color:var(--red);">−₹3,800</td><td style="padding:14px 24px;text-align:right;"><span style="color:var(--muted);font-size:12px;cursor:pointer;">Delete</span></td></tr>
+            <tr data-type="income"><td style="padding:14px 24px;" class="td-muted">Apr 10, 2025</td><td style="padding:14px 8px;">Salary credit</td><td style="padding:14px 8px;"><span class="badge badge-green">Income</span></td><td style="padding:14px 24px;text-align:right;color:var(--green);">+₹55,000</td><td style="padding:14px 24px;text-align:right;"><span style="color:var(--muted);font-size:12px;cursor:pointer;">Delete</span></td></tr>
+            <tr data-type="expense"><td style="padding:14px 24px;" class="td-muted">Apr 08, 2025</td><td style="padding:14px 8px;">EMI payment</td><td style="padding:14px 8px;"><span class="badge badge-red">Expense</span></td><td style="padding:14px 24px;text-align:right;color:var(--red);">−₹8,500</td><td style="padding:14px 24px;text-align:right;"><span style="color:var(--muted);font-size:12px;cursor:pointer;">Delete</span></td></tr>
+            <tr data-type="income"><td style="padding:14px 24px;" class="td-muted">Apr 05, 2025</td><td style="padding:14px 8px;">Freelance payment</td><td style="padding:14px 8px;"><span class="badge badge-green">Income</span></td><td style="padding:14px 24px;text-align:right;color:var(--green);">+₹12,000</td><td style="padding:14px 24px;text-align:right;"><span style="color:var(--muted);font-size:12px;cursor:pointer;">Delete</span></td></tr>
+            <tr data-type="expense"><td style="padding:14px 24px;" class="td-muted">Apr 03, 2025</td><td style="padding:14px 8px;">Grocery shopping</td><td style="padding:14px 8px;"><span class="badge badge-red">Expense</span></td><td style="padding:14px 24px;text-align:right;color:var(--red);">−₹2,200</td><td style="padding:14px 24px;text-align:right;"><span style="color:var(--muted);font-size:12px;cursor:pointer;">Delete</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── GOALS ── -->
+    <div id="page-goals" class="page">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div>
+          <div class="page-title">Goals</div>
+          <div class="page-subtitle">Your financial milestones</div>
+        </div>
+        <button class="add-btn">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg>
+          Add Goal
+        </button>
+      </div>
+      <div class="goal-card">
+        <div class="goal-header">
+          <div>
+            <div class="goal-name">Emergency Fund</div>
+            <div class="goal-target" style="margin-top:3px;">Target: ₹1,00,000</div>
+          </div>
+          <span class="badge badge-green">On track</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:62%;"></div></div>
+        <div class="goal-meta"><span>₹62,000 saved</span><span>62% complete</span></div>
+      </div>
+      <div class="goal-card">
+        <div class="goal-header">
+          <div>
+            <div class="goal-name">New Laptop</div>
+            <div class="goal-target" style="margin-top:3px;">Target: ₹1,20,000</div>
+          </div>
+          <span class="badge badge-gold">In progress</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:35%;"></div></div>
+        <div class="goal-meta"><span>₹42,000 saved</span><span>35% complete</span></div>
+      </div>
+      <div class="goal-card">
+        <div class="goal-header">
+          <div>
+            <div class="goal-name">Europe Trip</div>
+            <div class="goal-target" style="margin-top:3px;">Target: ₹3,00,000</div>
+          </div>
+          <span class="badge badge-red">Behind</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:18%;background:var(--red);"></div></div>
+        <div class="goal-meta"><span>₹54,000 saved</span><span>18% complete</span></div>
+      </div>
+    </div>
+
+    <!-- ── STOCKS ── -->
+    <div id="page-stocks" class="page">
+      <div class="page-header">
+        <div class="page-title">Stocks</div>
+        <div class="page-subtitle">Live Nifty 50 — simulated prices</div>
+      </div>
+      <div class="stats-row" style="grid-template-columns:repeat(4,1fr);">
+        <div class="stat-card">
+          <div class="stat-label">Portfolio value</div>
+          <div class="stat-value" style="font-size:22px;">₹18,42,500</div>
+          <div class="stat-change up">▲ 2.1% today</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Day's gain</div>
+          <div class="stat-value" style="font-size:22px;color:var(--green);">+₹38,200</div>
+          <div class="stat-change up">Across 8 stocks</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Available cash</div>
+          <div class="stat-value" style="font-size:22px;">₹1,57,500</div>
+          <div class="stat-change" style="color:var(--muted);">Virtual balance</div>
+        </div>
+        <div class="stat-card gold-card">
+          <div class="stat-label" style="color:var(--gold-dim);">Top gainer</div>
+          <div class="stat-value gold" style="font-size:18px;margin-top:4px;">TCS ▲ 3.2%</div>
+          <div class="stat-change up">+₹212 today</div>
+        </div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <table style="width:100%;">
+          <thead><tr style="border-bottom:0.5px solid var(--border);">
+            <th style="padding:14px 24px;">Company</th>
+            <th style="padding:14px 8px;">Symbol</th>
+            <th style="padding:14px 8px;text-align:right;">Price</th>
+            <th style="padding:14px 8px;text-align:right;">Change</th>
+            <th style="padding:14px 8px;text-align:right;">Mkt Cap</th>
+            <th style="padding:14px 24px;text-align:right;">Action</th>
+          </tr></thead>
+          <tbody id="stocks-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /main-app -->
+
+<script>
+const stocks=[
+  {name:'Reliance Industries',sym:'RELIANCE',price:2941,chg:1.2,cap:'19.8L Cr'},
+  {name:'TCS',sym:'TCS',price:3812,chg:3.2,cap:'13.8L Cr'},
+  {name:'HDFC Bank',sym:'HDFCBANK',price:1642,chg:-0.4,cap:'12.4L Cr'},
+  {name:'Infosys',sym:'INFY',price:1478,chg:1.8,cap:'6.1L Cr'},
+  {name:'ICICI Bank',sym:'ICICIBANK',price:1124,chg:0.9,cap:'7.9L Cr'},
+  {name:'Wipro',sym:'WIPRO',price:462,chg:-1.1,cap:'2.4L Cr'},
+  {name:'HUL',sym:'HINDUNILVR',price:2284,chg:0.3,cap:'5.4L Cr'},
+  {name:'Bajaj Finance',sym:'BAJFINANCE',price:6948,chg:2.1,cap:'4.2L Cr'},
+  {name:'Asian Paints',sym:'ASIANPAINT',price:2812,chg:-0.7,cap:'2.7L Cr'},
+  {name:'Maruti Suzuki',sym:'MARUTI',price:12640,chg:1.5,cap:'3.8L Cr'},
+];
+
+function renderStocks(){
+  const tbody=document.getElementById('stocks-tbody');
+  tbody.innerHTML=stocks.map(s=>{
+    const up=s.chg>=0;
+    return `<tr>
+      <td style="padding:13px 24px;font-weight:400;">${s.name}</td>
+      <td style="padding:13px 8px;color:var(--muted);font-size:12px;">${s.sym}</td>
+      <td style="padding:13px 8px;text-align:right;">₹${s.price.toLocaleString()}</td>
+      <td style="padding:13px 8px;text-align:right;color:${up?'var(--green)':'var(--red)'};">${up?'▲':'▼'} ${Math.abs(s.chg)}%</td>
+      <td style="padding:13px 8px;text-align:right;color:var(--muted);font-size:12px;">${s.cap}</td>
+      <td style="padding:13px 24px;text-align:right;">
+        <button onclick="void(0)" style="padding:5px 14px;border-radius:6px;background:var(--gold);color:#0c0a06;border:none;font-size:11px;font-family:var(--sans);cursor:pointer;font-weight:500;">Buy</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function enterApp(){
+  document.getElementById('login-page').style.display='none';
+  document.getElementById('main-app').style.display='flex';
+  initCharts();
+  renderStocks();
+}
+
+function showPage(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(el) el.classList.add('active');
+  else {
+    document.querySelectorAll('.nav-item').forEach(n=>{
+      if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+id+"'")) n.classList.add('active');
+    });
+  }
+}
+
+function switchTab(el,label){
+  el.closest('.time-tabs').querySelectorAll('.time-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function filterType(type,el){
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('#tx-tbody tr').forEach(r=>{
+    r.style.display=(type==='all'||r.dataset.type===type)?'':'none';
+  });
+}
+
+function filterTx(val){
+  document.querySelectorAll('#tx-tbody tr').forEach(r=>{
+    r.style.display=r.innerText.toLowerCase().includes(val.toLowerCase())?'':'none';
+  });
+}
+
+function initCharts(){
+  const gold='#c9a84c', gold2='#7a6530', dim='#2a2720', text='#888480';
+
+  const nwCtx=document.getElementById('netWorthChart').getContext('2d');
+  new Chart(nwCtx,{
+    type:'line',
+    data:{
+      labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+      datasets:[{
+        data:[12000,13200,14100,13800,15200,15900,16400,15800,16900,17200,17000,17600],
+        borderColor:gold, borderWidth:1.5, pointRadius:0,
+        tension:0.4, fill:true,
+        backgroundColor:(ctx)=>{
+          const g=ctx.chart.ctx.createLinearGradient(0,0,0,180);
+          g.addColorStop(0,'rgba(201,168,76,0.18)');
+          g.addColorStop(1,'rgba(201,168,76,0)');
+          return g;
+        }
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'₹'+ctx.raw.toLocaleString()}}},scales:{x:{grid:{color:dim},ticks:{color:text,font:{size:10}}},y:{grid:{color:dim},ticks:{color:text,font:{size:10},callback:v=>'₹'+v.toLocaleString()}}}}
+  });
+
+  const aCtx=document.getElementById('allocChart').getContext('2d');
+  new Chart(aCtx,{
+    type:'doughnut',
+    data:{
+      labels:['Cash','Stocks','Other'],
+      datasets:[{data:[55,33,12],backgroundColor:[gold,gold2,'#3a3530'],borderWidth:0,hoverOffset:4}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'72%'}
+  });
+
+  const apCtx=document.getElementById('assetPerfChart').getContext('2d');
+  new Chart(apCtx,{
+    type:'bar',
+    data:{
+      labels:['Cash','Nvidia','FD'],
+      datasets:[{data:[11000,2400,5000],backgroundColor:[gold,gold2,'#3a3530'],borderRadius:4,borderWidth:0}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:text}},y:{grid:{color:dim},ticks:{color:text,callback:v=>'₹'+v.toLocaleString()}}}}
+  });
+
+  const lCtx=document.getElementById('liabChart').getContext('2d');
+  new Chart(lCtx,{
+    type:'doughnut',
+    data:{
+      labels:['Home Loan','EMI'],
+      datasets:[{data:[200000,8500],backgroundColor:['rgba(224,90,90,0.7)','rgba(224,90,90,0.3)'],borderWidth:0}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'72%'}
+  });
+}
+</script>
+</html>

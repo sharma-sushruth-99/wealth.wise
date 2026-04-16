@@ -1,0 +1,13 @@
+{
+  "name": "wealth-wise-scrapper",
+  "version": "1.0.0",
+  "description": "Puppeteer scraper for Yahoo Finance NIFTY 50",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "mysql2": "^3.9.0",
+    "puppeteer": "^22.6.0"
+  }
+}
